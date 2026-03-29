@@ -1,0 +1,20 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    overlay-name = "Nunchuck I2C Device";
+    compatible = "nvidia,p3768-0000+p3767-0005-super", "nvidia,p3768-0000+p3767-0005", "nvidia,tegra234";
+
+    fragment@0 {
+        target = <&gen8_i2c>;
+        __overlay__ {
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            joystick@52 {
+                compatible = "nintendo,nunchuk";
+                reg = <0x52>;
+            };
+        };
+    };
+};

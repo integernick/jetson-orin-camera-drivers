@@ -1,0 +1,1 @@
+cmd_/home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab3-nunchuck/modules.order := {   echo /home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab3-nunchuck/nunchuck.ko; :; } | awk '!x[$$0]++' - > /home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab3-nunchuck/modules.order

@@ -1,0 +1,1 @@
+cmd_/home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab2-hello-module/Module.symvers := sed 's/\.ko$$/\.o/' /home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab2-hello-module/modules.order | scripts/mod/modpost -m   -o /home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab2-hello-module/Module.symvers -e -i Module.symvers   -T -

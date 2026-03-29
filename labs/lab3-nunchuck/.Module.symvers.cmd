@@ -1,0 +1,1 @@
+cmd_/home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab3-nunchuck/Module.symvers := sed 's/\.ko$$/\.o/' /home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab3-nunchuck/modules.order | scripts/mod/modpost -m   -o /home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab3-nunchuck/Module.symvers -e -i Module.symvers   -T -

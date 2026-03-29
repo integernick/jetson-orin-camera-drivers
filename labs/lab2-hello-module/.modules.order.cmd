@@ -1,0 +1,1 @@
+cmd_/home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab2-hello-module/modules.order := {   echo /home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab2-hello-module/hello_version.ko; :; } | awk '!x[$$0]++' - > /home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab2-hello-module/modules.order
