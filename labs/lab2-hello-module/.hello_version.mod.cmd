@@ -1,1 +1,0 @@
-cmd_/home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab2-hello-module/hello_version.mod := printf '%s\n'   hello_version.o | awk '!x[$$0]++ { print("/home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab2-hello-module/"$$0) }' > /home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab2-hello-module/hello_version.mod

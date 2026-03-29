@@ -1,1 +1,0 @@
-cmd_/home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab3-nunchuck/nunchuck.mod := printf '%s\n'   nunchuck.o | awk '!x[$$0]++ { print("/home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab3-nunchuck/"$$0) }' > /home/nick/Documents/Projects/jetson-orin-camera-drivers/labs/lab3-nunchuck/nunchuck.mod
