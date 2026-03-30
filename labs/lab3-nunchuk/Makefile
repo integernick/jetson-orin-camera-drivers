@@ -1,5 +1,5 @@
 ifneq ($(KERNELRELEASE),)
-obj-m := nunchuck.o
+obj-m := nunchuk.o
 else
 KDIR := $(HOME)/jetson-dev/Linux_for_Tegra/source/kernel/kernel-jammy-src
 CROSS_COMPILE := ${HOME}/jetson-toolchain/aarch64--glibc--stable-2022.08-1/bin/aarch64-buildroot-linux-gnu-
