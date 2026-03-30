@@ -8,7 +8,7 @@ The end goal is to develop an IMX477 camera driver using the Tegra CSI/VI pipeli
 
 - **Target**: NVIDIA Jetson Orin Nano Super Developer Kit (p3768-0000 carrier + p3767-0005 module)
 - **Host**: Ubuntu 22.04 AMD64 machine (cross-compilation)
-- **Peripherals**: Wii Nunchuck (I2C joystick), Raspberry Pi IMX477 camera (future)
+- **Peripherals**: Wii nunchuk (I2C joystick), Raspberry Pi IMX477 camera (future)
 - **Storage**: SD card (mmcblk0p1)
 
 ## Platform: JetPack 6.2.1 / L4T R36.4.4
@@ -198,7 +198,7 @@ ssh jetson-orin "sudo dmesg | tail -3"
 
 `/proc/modules` is the raw data source that `lsmod` formats — they show the same info.
 
-## Lab 3: Nunchuck I2C Driver
+## Lab 3: nunchuk I2C Driver
 
 ### I2C on the 40-pin header
 
@@ -209,11 +209,11 @@ ssh jetson-orin "sudo dmesg | tail -3"
 | 27 | SDA | i2c-1 | gen2_i2c (i2c@c240000) |
 | 28 | SCL | i2c-1 | gen2_i2c (i2c@c240000) |
 
-Power: Pin 1 (3.3V), Pin 6 (GND). The Nunchuck runs at 3.3V — fully compatible.
+Power: Pin 1 (3.3V), Pin 6 (GND). The nunchuk runs at 3.3V — fully compatible.
 
 ### Wiring
 
-| Nunchuck | Jetson 40-pin |
+| nunchuk | Jetson 40-pin |
 |----------|---------------|
 | + (PWR) | Pin 1 (3.3V) |
 | - (GND) | Pin 6 (GND) |
@@ -238,7 +238,7 @@ i2c-1  c240000.i2c     — 40-pin header pins 27/28
 i2c-2  3180000.i2c     — camera CSI connector, PMICs
 i2c-4  Tegra BPMP I2C  — virtual bus proxied through BPMP co-processor
 i2c-5  31b0000.i2c     — internal peripherals
-i2c-7  c250000.i2c     — 40-pin header pins 3/5 (the Nunchuck)
+i2c-7  c250000.i2c     — 40-pin header pins 3/5 (the nunchuk)
 i2c-9  NVIDIA SOC i2c  — virtual, display/GPU stack
 ```
 
@@ -296,7 +296,7 @@ A SoC has hundreds of internal signals but limited physical pins. Most pins can 
 /plugin/;
 
 / {
-    overlay-name = "Nunchuck I2C Device";
+    overlay-name = "nunchuk I2C Device";
     compatible = "nvidia,p3768-0000+p3767-0005-super",
                  "nvidia,p3768-0000+p3767-0005",
                  "nvidia,tegra234";
@@ -328,11 +328,11 @@ Notes:
 
 ```bash
 # Compile (-@ preserves label info needed for overlay resolution)
-dtc -@ -I dts -O dtb -o nunchuck-overlay.dtbo nunchuck-overlay.dts
+dtc -@ -I dts -O dtb -o nunchuk-overlay.dtbo nunchuk-overlay.dts
 
 # Deploy
-scp nunchuck-overlay.dtbo jetson-orin:~
-ssh jetson-orin "sudo cp ~/nunchuck-overlay.dtbo /boot/"
+scp nunchuk-overlay.dtbo jetson-orin:~
+ssh jetson-orin "sudo cp ~/nunchuk-overlay.dtbo /boot/"
 ```
 
 ### Boot configuration
@@ -346,7 +346,7 @@ LABEL primary
       FDT /boot/dtb/kernel_tegra234-p3768-0000+p3767-0005-nv-super.dtb
       INITRD /boot/initrd
       APPEND ${cbootargs} root=PARTUUID=... rw rootwait rootfstype=ext4 ...
-      OVERLAYS /boot/nunchuck-overlay.dtbo
+      OVERLAYS /boot/nunchuk-overlay.dtbo
 ```
 
 Find your DTB filename with `ls /boot/dtb/`.
@@ -380,7 +380,7 @@ Newer kernels (6.x+) dropped the second probe argument and changed remove to ret
 grep -A 20 "struct i2c_driver {" include/linux/i2c.h
 ```
 
-### Nunchuck I2C protocol
+### nunchuk I2C protocol
 
 **Init**: send `0xf0 0x55`, then `0xfb 0x00` (selects unencrypted mode).
 
@@ -395,12 +395,12 @@ grep -A 20 "struct i2c_driver {" include/linux/i2c.h
 ### Testing
 
 ```bash
-$ ssh jetson-orin "sudo insmod ~/nunchuck.ko && sudo dmesg | tail -3"
-nunchuck: module verification failed: signature and/or required key missing - tainting kernel
+$ ssh jetson-orin "sudo insmod ~/nunchuk.ko && sudo dmesg | tail -3"
+nunchuk: module verification failed: signature and/or required key missing - tainting kernel
 nunchuk 7-0052: joystick: x=128 y=128 | buttons: z=0 c=0
 ```
 
-If you get error -121 (EREMOTEIO) on init, the Nunchuck is in a bad state from a previous partial init. Unplug it, wait 2 seconds, plug it back in, verify with `i2cdetect -r 7`, then retry.
+If you get error -121 (EREMOTEIO) on init, the nunchuk is in a bad state from a previous partial init. Unplug it, wait 2 seconds, plug it back in, verify with `i2cdetect -r 7`, then retry.
 
 ### Driver sysfs entries
 
@@ -411,9 +411,122 @@ When the driver binds to the device, the kernel automatically creates:
 ├── 7-0052     → symlink to bound device
 ├── bind       → write device name to manually bind
 ├── unbind     → write device name to manually unbind (without rmmod)
-├── module     → symlink to /sys/module/nunchuck/
+├── module     → symlink to /sys/module/nunchuk/
 └── uevent     → triggers hotplug event
 ```
+
+## Lab 4: Input Subsystem
+
+Extend the nunchuk driver to expose buttons and joystick axes to userspace through the Linux input subsystem.
+
+### Prerequisites
+
+Check that the input event interface and joystick device support are enabled:
+
+```bash
+zcat /proc/config.gz | grep CONFIG_INPUT_EVDEV
+zcat /proc/config.gz | grep CONFIG_INPUT_JOYDEV
+```
+
+Both should show `=y` or `=m`. JetPack 6 enables them by default.
+
+Install `evtest` for testing:
+
+```bash
+sudo apt install -y evtest
+```
+
+### Architecture
+
+The input subsystem has two halves: **device drivers** (talk to hardware, generate events) and **event handlers** (deliver events to userspace via `/dev/input/eventX`). The main event handler is `evdev`, enabled by `CONFIG_INPUT_EVDEV`.
+
+Userspace reads events through standard file operations (`open`, `select`, `read`) on `/dev/input/eventX`. Each read returns a `struct input_event` with a type, code, and value. `evtest` is a simple tool that does exactly this — opens the fd, waits in `select()`, reads events, prints them.
+
+### The three-struct pattern
+
+The polling function receives an `input_dev` (logical device) but needs the `i2c_client` (physical device) to read hardware registers. A private structure bridges them:
+
+```
+Physical hardware ← i2c_client ← nunchuk_dev → input_dev → /dev/input/eventX → userspace
+```
+
+- `struct i2c_client` — physical I2C device, created by the kernel from the device tree
+- `struct input_dev` — logical input device, registered with the input subsystem
+- `struct nunchuk_dev` — private glue struct holding an `i2c_client` pointer, attached to the `input_dev` with `input_set_drvdata()` and retrieved in the poll function with `input_get_drvdata()`
+
+This is the same pattern used in every kernel framework (IIO, V4L2, ALSA, etc.) — only the struct names change.
+
+### Event types and codes
+
+Events are organized in two levels:
+
+- **Type** — category of event: `EV_KEY` (buttons/keys), `EV_ABS` (absolute axes), `EV_REL` (relative axes like a mouse)
+- **Code** — specific event within that type: `BTN_Z`, `BTN_C`, `ABS_X`, `ABS_Y`
+
+Declare capabilities in probe with `set_bit()`, report events in the poll function with `input_report_key()` / `input_report_abs()`, and finalize each event packet with `input_sync()`.
+
+For buttons, the input subsystem deduplicates — reporting the same state repeatedly only delivers the first change to userspace. For axes, every report is delivered.
+
+### Polling
+
+The nunchuk has no interrupt pin, so polling is the only option. `input_setup_polling()` registers a poll function that the kernel calls on a timer. The CPU sleeps between polls — no busy-waiting.
+
+```c
+input_setup_polling(input, nunchuk_poll);
+input_set_poll_interval(input, 50);  /* milliseconds */
+```
+
+At 50ms intervals with ~1ms of actual I2C work per poll, CPU usage is negligible.
+
+Devices with an interrupt line (like most real sensors) skip polling entirely — the hardware triggers an IRQ, the driver runs once, done.
+
+### Joystick recognition
+
+Linux's `joydev` subsystem decides whether a device is a joystick based on which button codes it declares. To get `/dev/input/jsX` created, declare standard gamepad buttons even if the device doesn't physically have them:
+
+```c
+set_bit(BTN_TL, input->keybit);
+set_bit(BTN_SELECT, input->keybit);
+/* ... etc */
+```
+
+These are never reported — they just tell the kernel to classify the device as a joystick.
+
+### Testing
+
+```bash
+$ evtest
+Available devices:
+...
+/dev/input/event11:	nunchuk
+Select the device event number [0-11]: 11
+...
+Event: time ..., type 1 (EV_KEY), code 306 (BTN_C), value 1
+Event: time ..., -------------- SYN_REPORT ------------
+Event: time ..., type 3 (EV_ABS), code 0 (ABS_X), value 254
+Event: time ..., type 3 (EV_ABS), code 1 (ABS_Y), value 238
+Event: time ..., -------------- SYN_REPORT ------------
+```
+
+Verify joystick device was created:
+
+```bash
+ls /dev/input/js0
+```
+
+### Choosing the right framework
+
+The input subsystem is for human interface devices. Other device types use different frameworks:
+
+| Device type | Framework | Userspace interface |
+|-------------|-----------|-------------------|
+| Buttons, joysticks, touchscreens | Input | `/dev/input/eventX` |
+| Raw sensors (IMU, ADC, temperature) | IIO | `/dev/iio:deviceX` |
+| Cameras, video | V4L2 | `/dev/videoX` |
+| Audio | ALSA | `/dev/snd/*` |
+| Network | netdev | `ethX`, `wlanX` |
+
+The driver patterns are identical across frameworks — same three-struct pattern, same probe/remove lifecycle, same device tree binding. Only the framework-specific API changes.
 
 ## Useful commands
 
@@ -431,6 +544,13 @@ cat /proc/modules
 # I2C
 i2cdetect -l                    # list buses
 i2cdetect -r 7                  # scan bus 7
+
+# Input devices
+evtest                          # list and test input devices
+ls /dev/input/                  # see eventX and jsX devices
+
+# Kernel config
+zcat /proc/config.gz | grep PATTERN
 
 # Device tree
 find /sys/firmware/devicetree/base -name "*pattern*"
